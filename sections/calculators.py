@@ -50,6 +50,9 @@ def _ripple():
         st.dataframe(df, hide_index=True, width="stretch")
         st.info("Check it balances: Assets change "
                 f"= {(-charge + cash):+.1f}; Equity change = {ni:+.1f}. Equal ✔")
+        st.caption("Assumes the charge is tax-deductible in the period, so it creates a "
+                   "cash tax saving. A non-deductible write-down would lower Net Income "
+                   "with no cash tax benefit.")
 
 
 # ------------------------------------------------------------------ 2. fcff
@@ -58,7 +61,7 @@ def _fcff_single():
     st.caption("The only FCFF definition in the app: NOPAT + D&A − Capex − ΔNWC.")
     c1, c2, c3 = st.columns(3)
     ebit = c1.number_input("EBIT ($M)", value=40.0, step=1.0, key="fcff_ebit")
-    tax = c1.number_input("Tax rate", value=0.25, step=0.01, format="%.2f", key="fcff_tax")
+    tax = c1.number_input("Tax rate", value=0.25, step=0.01, format="%.2f", min_value=0.0, max_value=0.60, key="fcff_tax")
     dna = c2.number_input("D&A ($M)", value=20.0, step=1.0, key="fcff_dna")
     capex = c2.number_input("Capex ($M)", value=35.0, step=1.0, key="fcff_capex")
     d_ar = c3.number_input("Δ A/R ($M)", value=10.0, step=1.0, key="fcff_ar")
@@ -80,14 +83,21 @@ def _fcff_single():
     st.metric("FCFF (unlevered)", f"${fcff:,.1f}M")
 
     with st.expander("See the Net-Income (FCFE) trap for these inputs"):
-        ni = st.number_input("Net Income for the same firm ($M)", value=24.0, step=1.0,
-                             key="fcff_ni")
+        interest = st.number_input("Interest expense ($M)", value=8.0, step=1.0,
+                                   min_value=0.0, key="fcff_int")
+        ebt = ebit - interest
+        ni = ebt * (1 - tax)
         levered = ni + dna - capex - dnwc
         wedge = fcff - levered
-        st.write(f"Net-Income route: {ni:.0f} + {dna:.0f} − {capex:.0f} − {dnwc:.0f} = "
+        st.write(f"With interest of {interest:.0f}: EBT = {ebit:.0f} − {interest:.0f} = "
+                 f"{ebt:.0f}; Net Income = {ebt:.0f} × (1 − {tax:.0%}) = **{ni:.1f}**.")
+        st.write(f"Net-Income route: {ni:.1f} + {dna:.0f} − {capex:.0f} − {dnwc:.0f} = "
                  f"**{levered:.1f}** (a levered / FCFE-style figure).")
-        st.write(f"Gap to FCFF = **{wedge:.1f}**, which is after-tax interest. "
-                 "Starting from NOPAT avoids this entirely.")
+        st.write(f"Gap to FCFF = **{wedge:.1f}** = interest × (1 − tax) = "
+                 f"{interest:.0f} × {1-tax:.2f} = {interest*(1-tax):.1f}. "
+                 "Because we derived Net Income from the same EBIT, interest and tax, the "
+                 "gap is *exactly* the after-tax interest — which starting from NOPAT "
+                 "avoids entirely.")
 
 
 # ------------------------------------------------------------------ 3. 5yr
@@ -97,7 +107,7 @@ def _five_year():
     rev0 = c1.number_input("Start revenue ($M)", value=200.0, step=10.0, key="fy_rev")
     g = c1.number_input("Revenue growth", value=0.08, step=0.01, format="%.2f", key="fy_g")
     margin = c2.number_input("EBIT margin", value=0.18, step=0.01, format="%.2f", key="fy_margin")
-    tax = c2.number_input("Tax rate", value=0.25, step=0.01, format="%.2f", key="fy_tax")
+    tax = c2.number_input("Tax rate", value=0.25, step=0.01, format="%.2f", min_value=0.0, max_value=0.60, key="fy_tax")
     dna = c3.number_input("D&A % of sales", value=0.06, step=0.01, format="%.2f", key="fy_dna")
     capex = c3.number_input("Capex % of sales", value=0.07, step=0.01, format="%.2f", key="fy_capex")
     nwc = c4.number_input("NWC % of sales", value=0.12, step=0.01, format="%.2f", key="fy_nwc")
@@ -169,7 +179,7 @@ def _dcf():
                             step=0.005, format="%.4f", key="dcf_wacc_in")
     g = c2.number_input("Terminal growth", value=0.025, step=0.005, format="%.4f", key="dcf_g")
     net_debt = c3.number_input("Net debt ($M)", value=300.0, step=10.0, key="dcf_nd")
-    shares = c4.number_input("Diluted shares (M)", value=50.0, step=1.0, key="dcf_sh")
+    shares = c4.number_input("Diluted shares (M)", value=50.0, step=1.0, min_value=1.0, key="dcf_sh")
     mid = st.toggle("Mid-year convention", value=False, key="dcf_mid")
 
     if wacc_ <= g:
@@ -220,9 +230,9 @@ def _multiples():
     with tab1:
         c1, c2, c3, c4 = st.columns(4)
         mult = c1.number_input("EV/EBITDA (x)", value=10.0, step=0.5, key="m1_mult")
-        ebitda = c2.number_input("EBITDA ($M)", value=100.0, step=5.0, key="m1_eb")
+        ebitda = c2.number_input("EBITDA ($M)", value=100.0, step=5.0, min_value=0.1, key="m1_eb")
         nd = c3.number_input("Net debt ($M)", value=300.0, step=10.0, key="m1_nd")
-        sh = c4.number_input("Shares (M)", value=50.0, step=1.0, key="m1_sh")
+        sh = c4.number_input("Shares (M)", value=50.0, step=1.0, min_value=1.0, key="m1_sh")
         out = f.share_price_from_multiple(mult, ebitda, nd, sh)
         st.write(f"EV = {mult:g} × {ebitda:g} = **${out['ev']:,.0f}M** → "
                  f"Equity = **${out['equity']:,.0f}M** → "
@@ -230,9 +240,9 @@ def _multiples():
     with tab2:
         c1, c2, c3, c4 = st.columns(4)
         px = c1.number_input("Share price ($)", value=20.0, step=1.0, key="m2_px")
-        sh2 = c2.number_input("Shares (M)", value=50.0, step=1.0, key="m2_sh")
+        sh2 = c2.number_input("Shares (M)", value=50.0, step=1.0, min_value=1.0, key="m2_sh")
         nd2 = c3.number_input("Net debt ($M)", value=200.0, step=10.0, key="m2_nd")
-        eb2 = c4.number_input("EBITDA ($M)", value=100.0, step=5.0, key="m2_eb")
+        eb2 = c4.number_input("EBITDA ($M)", value=100.0, step=5.0, min_value=0.1, key="m2_eb")
         out = f.multiple_from_share_price(px, sh2, nd2, eb2)
         st.write(f"Market cap = **${out['mkt_cap']:,.0f}M** → EV = **${out['ev']:,.0f}M** "
                  f"→ EV/EBITDA = **{out['multiple']:.1f}x**")
@@ -255,8 +265,8 @@ def _synergy():
     st.subheader("Synergy value & bidding discipline")
     c1, c2 = st.columns(2)
     annual = c1.number_input("After-tax annual synergy ($M)", value=150.0, step=10.0, key="sy_ann")
-    disc = c2.number_input("Discount rate", value=0.08, step=0.005, format="%.3f", key="sy_disc")
-    shares = c1.number_input("Diluted shares (M)", value=50.0, step=1.0, key="sy_sh")
+    disc = c2.number_input("Discount rate", value=0.08, step=0.005, format="%.3f", min_value=0.001, key="sy_disc")
+    shares = c1.number_input("Diluted shares (M)", value=50.0, step=1.0, min_value=1.0, key="sy_sh")
     anchor = c2.number_input("Standalone anchor — DCF high ($/share)", value=58.0, step=1.0, key="sy_anchor")
 
     val = f.perpetual_synergy_value(annual, disc)

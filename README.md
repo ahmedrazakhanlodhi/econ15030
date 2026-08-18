@@ -17,10 +17,13 @@ It bundles four things students can use on their own:
    the forecast and watch the DCF collapse from the 2023 book range to the 2024
    book range and the eventual close.
 
-Everything numeric — every calculator **and** every graded answer — calls one
-shared engine (`lib/finance.py`), so there is a single definition of FCFF, one
-DCF assembly, and a sensitivity table that recomputes terminal FCFF for each
-growth case. The tool cannot contradict the decks or itself.
+The calculators all call one shared engine (`lib/finance.py`), giving a single
+definition of FCFF (the unlevered NOPAT route), one DCF assembly, and a
+sensitivity table that recomputes terminal FCFF for each growth case. The
+practice bank's numeric answers are stored constants that have been **validated
+against that same engine** — `tests/` re-derives every engine-computable answer
+and asserts it matches the stored key, so the calculators and the answer keys
+stay in agreement.
 
 ---
 
@@ -88,6 +91,20 @@ assets/slides/          rendered slide images (lecture1..4)
   figures, and (rights permitting) add the real football-field / share-price /
   analysis-at-various-prices pages as a thin teaching wrapper. If the deployed
   URL is public, keep confidential bank material out of the repo.
+
+## Running the tests
+
+No extra dependencies needed — the suite runs standalone:
+
+```bash
+python tests/test_finance.py
+python tests/test_questions.py
+```
+
+(or `pytest tests/` if you have pytest). `test_finance.py` re-derives every
+deck figure and every engine-computable answer key, checks the guardrails, and
+asserts the capstone presets still land inside the published book ranges;
+`test_questions.py` validates the bank's structure.
 
 ## A note on the numbers
 

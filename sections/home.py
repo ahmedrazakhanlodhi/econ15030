@@ -34,9 +34,10 @@ def render():
     with b:
         st.subheader("Why the numbers always agree")
         st.markdown(
-            "Every calculator and every graded answer calls one shared finance engine, so "
-            "there's a single definition of FCFF (the unlevered NOPAT route), one DCF "
-            "assembly, and a sensitivity table that recomputes terminal FCFF for each "
-            "growth case. The tool can't contradict the decks — or itself.")
+            "Every calculator calls one shared finance engine, so there's a single "
+            "definition of FCFF (the unlevered NOPAT route), one DCF assembly, and a "
+            "sensitivity table that recomputes terminal FCFF for each growth case. The "
+            "practice bank's numeric answers are validated against that same engine, so "
+            "the calculators and the answer keys stay in agreement.")
 
     st.info("Pick a section from the sidebar to begin.")

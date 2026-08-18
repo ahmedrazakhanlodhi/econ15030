@@ -15,6 +15,7 @@ LEVEL_COLOR = {"Core": "#2E7D32", "Stretch": "#B8860B", "Interview-hard": "#8000
 def _init_state():
     st.session_state.setdefault("answered", {})   # id -> bool correct
     st.session_state.setdefault("quiz_order", [])
+    st.session_state.setdefault("quiz_sig", None)   # signature of current filter
     st.session_state.setdefault("quiz_pos", 0)
     st.session_state.setdefault("flash_pos", 0)
     st.session_state.setdefault("flash_show", False)
@@ -115,9 +116,13 @@ def _study(pool):
 
 def _quiz(pool):
     ids = [q["id"] for q in pool]
-    if st.session_state.quiz_order != ids:
-        # filter changed -> rebuild a shuffled run
-        st.session_state.quiz_order = ids
+    # Signature of the current filter selection. Rebuild the shuffled run ONLY
+    # when the filter changes — comparing against the shuffled order itself
+    # would re-trigger on every rerun and reset the quiz.
+    sig = tuple(sorted(ids))
+    if st.session_state.quiz_sig != sig:
+        st.session_state.quiz_sig = sig
+        st.session_state.quiz_order = list(ids)
         random.shuffle(st.session_state.quiz_order)
         st.session_state.quiz_pos = 0
 
@@ -125,7 +130,7 @@ def _quiz(pool):
     if not order:
         st.info("No questions match this filter.")
         return
-    pos = st.session_state.quiz_pos
+    pos = min(st.session_state.quiz_pos, len(order) - 1)
     qmap = {q["id"]: q for q in pool}
     q = qmap[order[pos]]
 
@@ -182,8 +187,8 @@ def render():
     _init_state()
     st.title("Practice questions")
     st.caption("Interview-style problems in the concept → question → worked-answer format "
-               "from your sessions. Numeric answers are graded against the same engine the "
-               "calculators use.")
+               "from your sessions. Numeric answers are graded to a tolerance and have "
+               "been validated against the same engine the calculators use.")
 
     # progress meter
     total = len(QUESTIONS)

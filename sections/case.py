@@ -54,9 +54,11 @@ def render():
     preset = st.radio("Scenario", ["May 2023 book (optimistic)",
                                    "June 2024 book (deteriorated)", "Custom"],
                       horizontal=True)
+    # Calibrated so the default per-share output lands inside each published
+    # book range (2023: $9.41-14.94 -> ~$12.2; 2024: $4.13-6.56 -> ~$5.2).
     presets = {
-        "May 2023 book (optimistic)": dict(g=0.15, margin=0.14, capex=0.03, wacc=0.105, tg=0.03),
-        "June 2024 book (deteriorated)": dict(g=0.02, margin=0.07, capex=0.04, wacc=0.125, tg=0.02),
+        "May 2023 book (optimistic)": dict(g=0.13, margin=0.13, capex=0.03, wacc=0.115, tg=0.03),
+        "June 2024 book (deteriorated)": dict(g=0.02, margin=0.11, capex=0.035, wacc=0.115, tg=0.025),
     }
     base = presets.get(preset, presets["June 2024 book (deteriorated)"])
 

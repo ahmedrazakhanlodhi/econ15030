@@ -244,4 +244,6 @@ def ev_to_equity(ev: float, gross_debt: float = 0.0, excess_cash: float = 0.0,
 
 def perpetual_synergy_value(annual_after_tax: float, discount_rate: float) -> float:
     """Simplified: annual / r. (No growth, no ramp, no integration cost.)"""
+    if discount_rate <= 0:
+        raise ValueError("Discount rate must be positive.")
     return annual_after_tax / discount_rate
